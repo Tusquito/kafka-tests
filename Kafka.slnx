@@ -1,7 +1,7 @@
 <Solution>
-  <Project Path="src/Kafka.AppHost/Kafka.AppHost.csproj" />
-  <Project Path="src/Kafka.Common/Kafka.Common.csproj" />
-  <Project Path="src/Kafka.Consumer/Kafka.Consumer.csproj" />
-  <Project Path="src/Kafka.Producer/Kafka.Producer.csproj" />
-  <Project Path="src/Kafka.ServiceDefaults/Kafka.ServiceDefaults.csproj" />
+    <Project Path="src/Kafka.AppHost/Kafka.AppHost.csproj"/>
+    <Project Path="src/Kafka.Common/Kafka.Common.csproj"/>
+    <Project Path="src/Kafka.Consumer/Kafka.Consumer.csproj"/>
+    <Project Path="src/Kafka.Producer/Kafka.Producer.csproj"/>
+    <Project Path="src/Kafka.ServiceDefaults/Kafka.ServiceDefaults.csproj"/>
 </Solution>

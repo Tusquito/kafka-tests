@@ -8,13 +8,13 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Aspire.Confluent.Kafka" Version="13.1.1" />
+        <PackageReference Include="Aspire.Confluent.Kafka" Version="13.1.1"/>
         <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.3"/>
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\..\Kafka.ServiceDefaults\Kafka.ServiceDefaults.csproj" />
-      <ProjectReference Include="..\Kafka.Consumer\Kafka.Consumer.csproj" />
-      <ProjectReference Include="..\Kafka.ServiceDefaults\Kafka.ServiceDefaults.csproj" />
+        <ProjectReference Include="..\..\Kafka.ServiceDefaults\Kafka.ServiceDefaults.csproj"/>
+        <ProjectReference Include="..\Kafka.Consumer\Kafka.Consumer.csproj"/>
+        <ProjectReference Include="..\Kafka.ServiceDefaults\Kafka.ServiceDefaults.csproj"/>
     </ItemGroup>
 </Project>

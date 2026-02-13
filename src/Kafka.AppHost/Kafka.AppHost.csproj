@@ -9,12 +9,12 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\Kafka.Consumer\Kafka.Consumer.csproj" />
-      <ProjectReference Include="..\Kafka.Producer\Kafka.Producer.csproj" />
+        <ProjectReference Include="..\Kafka.Consumer\Kafka.Consumer.csproj"/>
+        <ProjectReference Include="..\Kafka.Producer\Kafka.Producer.csproj"/>
     </ItemGroup>
 
     <ItemGroup>
-      <PackageReference Include="Aspire.Hosting.Kafka" Version="13.1.1" />
+        <PackageReference Include="Aspire.Hosting.Kafka" Version="13.1.1"/>
     </ItemGroup>
 
 </Project>

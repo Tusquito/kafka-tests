@@ -14,9 +14,7 @@ builder.Services.AddOptionsWithValidateOnStart<KafkaOptions>()
         var brokenConnectionString = builder.Configuration.GetConnectionString("kafka-broker");
 
         if (!string.IsNullOrWhiteSpace(brokenConnectionString) && string.IsNullOrWhiteSpace(opts.BoostrapServer))
-        {
-            opts.BoostrapServer =  brokenConnectionString;
-        }
+            opts.BoostrapServer = brokenConnectionString;
     })
     .BindConfiguration(KafkaOptions.SectionName)
     .ValidateDataAnnotations();

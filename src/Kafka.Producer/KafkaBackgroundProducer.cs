@@ -4,17 +4,18 @@ using Confluent.Kafka;
 using Kafka.Common;
 using Kafka.Common.Events;
 using Kafka.Common.Events.Abstractions;
-using Kafka.Consumer;
 using Microsoft.Extensions.Options;
 
 namespace Kafka.Producer;
 
-public class KafkaBackgroundProducer(ILogger<KafkaBackgroundProducer> logger, IProducer<string, string> producer, IOptions<KafkaOptions> options)
+public class KafkaBackgroundProducer(
+    ILogger<KafkaBackgroundProducer> logger,
+    IProducer<string, string> producer,
+    IOptions<KafkaOptions> options)
     : BackgroundService
 {
+    private readonly Dictionary<EventKind, Type> _events = EventExtensions.ScanEventTypes();
     private readonly KafkaOptions _options = options.Value;
-
-    private readonly Dictionary<EventKind, Type> _events = EventExtensions.ScanEvents();
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -42,7 +43,7 @@ public class KafkaBackgroundProducer(ILogger<KafkaBackgroundProducer> logger, IP
                 await producer.ProduceAsync(_options.Topic, message, stoppingToken);
                 logger.LogEventEmitted(evt);
             }
-            catch(ProduceException<string, string> e)
+            catch (ProduceException<string, string> e)
             {
                 logger.LogFailedToProduceEvent(evt, e);
             }

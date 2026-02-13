@@ -10,5 +10,8 @@ public sealed class CreateEvent : IEvent
     public required Guid ResourceId { get; init; } = Guid.NewGuid();
     public required DateTime TimestampUtc { get; init; } = DateTime.UtcNow;
 
-    public override string ToString() => $"[{nameof(CreateEvent)}] {JsonSerializer.Serialize(this)}";
+    public override string ToString()
+    {
+        return $"[{nameof(CreateEvent)}] {JsonSerializer.Serialize(this)}";
+    }
 }
