@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk.Worker">
+
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <UserSecretsId>dotnet-Kafka.Producer-5e2b6ef1-740e-49a4-b0ef-4bfa0881db43</UserSecretsId>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Aspire.Confluent.Kafka" Version="13.1.1" />
+        <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.3"/>
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\..\Kafka.ServiceDefaults\Kafka.ServiceDefaults.csproj" />
+      <ProjectReference Include="..\Kafka.Consumer\Kafka.Consumer.csproj" />
+      <ProjectReference Include="..\Kafka.ServiceDefaults\Kafka.ServiceDefaults.csproj" />
+    </ItemGroup>
+</Project>

@@ -1,0 +1,14 @@
+﻿using System.Text.Json;
+using Kafka.Common.Events.Abstractions;
+
+namespace Kafka.Common.Events.Get;
+
+[KafkaEvent(EventKind.K_EVENT_GET)]
+public class GetEvent : IEvent
+{
+    public required Guid EventId { get; init; } = Guid.NewGuid();
+    public required Guid ResourceId { get; init; } = Guid.NewGuid();
+    public required DateTime TimestampUtc { get; init; } = DateTime.UtcNow;
+
+    public override string ToString() => $"[{nameof(GetEvent)}] {JsonSerializer.Serialize(this)}";
+}
