@@ -3,7 +3,7 @@ using Kafka.Common.Events.Abstractions;
 
 namespace Kafka.Common.Events.Get;
 
-[KafkaEvent(EventKind.K_EVENT_GET)]
+[KafkaEvent(EventKind.KEventGet)]
 public class GetEvent : IEvent
 {
     public required Guid EventId { get; init; } = Guid.NewGuid();

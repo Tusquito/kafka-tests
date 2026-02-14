@@ -3,7 +3,7 @@ using Kafka.Common.Events.Abstractions;
 
 namespace Kafka.Common.Events.Delete;
 
-[KafkaEvent(EventKind.K_EVENT_DELETE)]
+[KafkaEvent(EventKind.KEventDelete)]
 public sealed class DeleteEvent : IEvent
 {
     public required Guid EventId { get; init; } = Guid.NewGuid();

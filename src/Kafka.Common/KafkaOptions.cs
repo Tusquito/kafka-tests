@@ -12,5 +12,7 @@ public sealed class KafkaOptions
 
     [Required] public required string Topic { get; init; }
 
-    [Range(0, long.MaxValue)] public long LoopIntervalMs { get; init; } = 100;
+    [Required] public required string DlqTopic { get; init; }
+
+    [Range(0, long.MaxValue)] public required long LoopIntervalMs { get; init; } = 100;
 }

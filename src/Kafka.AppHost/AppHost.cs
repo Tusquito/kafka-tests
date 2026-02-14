@@ -4,7 +4,7 @@ var builder = DistributedApplication.CreateBuilder(args);
 
 var kafka = builder.AddKafka("kafka-broker")
     .WithKafkaUI()
-    .WithDataVolume(isReadOnly: false)
+    //   .WithDataVolume(isReadOnly: false)
     .WithEnvironment("KAFKA_AUTO_CREATE_TOPICS_ENABLE", "true");
 
 var producer = builder.AddProject<Kafka_Producer>("kafka-producer")

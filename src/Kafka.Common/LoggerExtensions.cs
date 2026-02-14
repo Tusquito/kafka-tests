@@ -1,30 +1,73 @@
-﻿using Kafka.Common.Events.Abstractions;
+﻿using Confluent.Kafka;
+using Kafka.Common.Events;
+using Kafka.Common.Events.Abstractions;
 using Microsoft.Extensions.Logging;
 
 namespace Kafka.Common;
 
 public static partial class LoggerExtensions
 {
-    [LoggerMessage(Level = LogLevel.Information, Message = "New message handled: {event}")]
+    [LoggerMessage(LogLevel.Information, "New message handled: {Event}")]
     public static partial void LogEventHandled(this ILogger logger, IEvent @event);
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "New message emitted: {event}")]
+    [LoggerMessage(LogLevel.Information, "New message emitted: {Event}")]
     public static partial void LogEventEmitted(this ILogger logger, IEvent @event);
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "New message received: [{key}]: {message}")]
-    public static partial void LogMessageReceived(this ILogger logger, string key, string message);
+    [LoggerMessage(LogLevel.Information,
+        "New message received: [{Key}]: {Event} at Partition [{Partition}] and Offset [{Offset}]")]
+    public static partial void LogEventReceived(this ILogger logger, string key, IEvent @event, int partition,
+        long offset);
 
-    [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to produce event: {event}")]
+    [LoggerMessage(LogLevel.Warning, "Failed to produce event: {Event}")]
     public static partial void LogFailedToProduceEvent(this ILogger logger, IEvent @event, Exception exception);
 
-    [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to invoke event for message: [{key}]: {message}")]
-    public static partial void LogFailedToInvokeEvent(this ILogger logger, string key, string message);
+    [LoggerMessage(LogLevel.Warning, "Failed to create event of type [{EventType}] and Kind [{EventKind}]")]
+    public static partial void LogFailedToCreateEventInstance(this ILogger logger, Type eventType, EventKind eventKind);
 
-    [LoggerMessage(Level = LogLevel.Warning, Message = "An empty message was received at [{partition}] {offset} ")]
+    [LoggerMessage(LogLevel.Warning, "An empty message was received at Offset [{Offset}] of Partition [{Partition}]")]
     public static partial void LogEmptyMessageReceived(this ILogger logger, int partition, long offset);
 
-    [LoggerMessage(Level = LogLevel.Warning,
-        Message = "Failed to deserialize message to even type `{eventTypeName}`: [{key}]: {message}")]
-    public static partial void LogFailedToDeserializeMessage(this ILogger logger, string key, string message,
-        string eventTypeName);
+    [LoggerMessage(LogLevel.Warning,
+        "Failed to deserialize message ({Length} bytes) with Key [{Key}] at Offset [{Offset}] of Partition [{Partition}] from Topic [{Topic}] for Reason [{Reason}]")]
+    public static partial void LogUnparsableMessage(this ILogger logger, long length, string key, int partition,
+        long offset,
+        string topic, UnparsableReason reason);
+
+    [LoggerMessage("Log intercepted fron consumer log handler: [{Instance}][{Facility}] {Message}")]
+    public static partial void LogInterceptedFromConsumerLogHandler(this ILogger logger, LogLevel level,
+        string instance, string facility, string message);
+
+    [LoggerMessage(LogLevel.Information,
+        "Offset [{Offset}] has been commited to Partition [{Partition}] of Topic [{Topic}]")]
+    public static partial void LogOffsetCommitted(this ILogger logger, string topic, int partition, long offset);
+
+    [LoggerMessage(LogLevel.Information,
+        "Partition [{Partition}] has been assigned to Topic [{Topic}]")]
+    public static partial void LogPartitionAssigned(this ILogger logger, string topic, int partition);
+
+    [LoggerMessage(LogLevel.Information,
+        "Partition [{Partition}] with Offset [{Offset}] has been lost from Topic [{Topic}]")]
+    public static partial void LogPartitionLost(this ILogger logger, string topic, int partition, long offset);
+
+    [LoggerMessage(LogLevel.Information,
+        "Partition [{Partition}] with Offset [{Offset}] has been revoked from Topic [{Topic}]")]
+    public static partial void LogPartitionRevoked(this ILogger logger, string topic, int partition, long offset);
+
+    [LoggerMessage(LogLevel.Information, "An error occured while consuming: [{CodeName}] {Reason} ({Code})")]
+    public static partial void LogInterceptedFromConsumerErrorHandler(this ILogger logger, string codeName,
+        string reason, int code);
+
+
+    public static LogLevel ToLogLevel(this SyslogLevel level)
+    {
+        return level switch
+        {
+            SyslogLevel.Emergency or SyslogLevel.Alert or SyslogLevel.Critical => LogLevel.Critical,
+            SyslogLevel.Error => LogLevel.Error,
+            SyslogLevel.Warning => LogLevel.Warning,
+            SyslogLevel.Notice or SyslogLevel.Info => LogLevel.Information,
+            SyslogLevel.Debug => LogLevel.Debug,
+            _ => throw new ArgumentOutOfRangeException(nameof(level), level, null)
+        };
+    }
 }

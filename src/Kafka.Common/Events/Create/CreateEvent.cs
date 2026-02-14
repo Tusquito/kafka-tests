@@ -3,7 +3,7 @@ using Kafka.Common.Events.Abstractions;
 
 namespace Kafka.Common.Events.Create;
 
-[KafkaEvent(EventKind.K_EVENT_CREATE)]
+[KafkaEvent(EventKind.KEventCreate)]
 public sealed class CreateEvent : IEvent
 {
     public required Guid EventId { get; init; } = Guid.NewGuid();

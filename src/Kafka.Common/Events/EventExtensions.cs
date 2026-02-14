@@ -6,8 +6,6 @@ namespace Kafka.Common.Events;
 
 public static class EventExtensions
 {
-    public const string EventKindHeaderKey = "event-kind";
-
     private static readonly Random Random = new(Guid.NewGuid().GetHashCode());
 
     public static Dictionary<EventKind, Type> ScanEventTypes()
@@ -20,15 +18,15 @@ public static class EventExtensions
 
     public static EventKind FindEventKind(this Headers headers)
     {
-        var kindBytes = headers.FirstOrDefault(x => x.Key == EventKindHeaderKey)?.GetValueBytes() ?? [];
+        var kindBytes = headers.FirstOrDefault(x => x.Key == nameof(KafkaHeader.EventKind))?.GetValueBytes() ?? [];
 
-        if (kindBytes.Length == 0) return EventKind.K_EVENT_UNKNOWN;
+        if (kindBytes.Length == 0) return EventKind.KEventUnknown;
 
         var kindStr = Encoding.UTF8.GetString(kindBytes);
 
-        if (string.IsNullOrWhiteSpace(kindStr)) return EventKind.K_EVENT_UNKNOWN;
+        if (string.IsNullOrWhiteSpace(kindStr)) return EventKind.KEventUnknown;
 
-        return Enum.TryParse(kindStr, out EventKind kind) ? kind : EventKind.K_EVENT_UNKNOWN;
+        return Enum.TryParse(kindStr, out EventKind kind) ? kind : EventKind.KEventUnknown;
     }
 
     extension(Dictionary<EventKind, Type> events)
