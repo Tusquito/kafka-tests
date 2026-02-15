@@ -3,11 +3,13 @@ using Microsoft.Extensions.Logging;
 
 namespace Kafka.Common.Events.Create;
 
-public class CreateEventHandler(ILogger<CreateEventHandler> logger) : INotificationHandler<CreateEvent>
+public class CreateEventHandler(ILogger<CreateEventHandler> logger) : ICommandHandler<CreateEvent>
 {
-    public ValueTask Handle(CreateEvent notification, CancellationToken cancellationToken)
+    public ValueTask<Unit> Handle(CreateEvent notification, CancellationToken cancellationToken)
     {
         logger.LogEventHandled(notification);
-        return ValueTask.CompletedTask;
+
+        // Test exception for retry testing
+        throw new InvalidOperationException("An error occured while handling a create event");
     }
 }

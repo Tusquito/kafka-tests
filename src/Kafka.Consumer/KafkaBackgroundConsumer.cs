@@ -2,7 +2,9 @@
 using Kafka.Common;
 using Kafka.Common.Events;
 using Kafka.Common.Events.Abstractions;
-using Kafka.Common.Json;
+using Kafka.Common.Events.Null;
+using Kafka.Common.Events.Unparsable;
+using Kafka.Common.Serializer;
 using Mediator;
 using Microsoft.Extensions.Options;
 
@@ -11,7 +13,7 @@ namespace Kafka.Consumer;
 public class KafkaBackgroundConsumer(
     IOptions<KafkaOptions> options,
     ILogger<KafkaBackgroundConsumer> logger,
-    IMediator mediator)
+    ISender sender)
     : BackgroundService
 {
     /// <summary>
@@ -30,8 +32,9 @@ public class KafkaBackgroundConsumer(
         };
 
         using var timer = new PeriodicTimer(TimeSpan.FromMilliseconds(_options.LoopIntervalMs));
-        using var consumer = new ConsumerBuilder<string, IEvent>(config)
-            .SetValueDeserializer(new JsonValueSerializer())
+        using var consumer = new ConsumerBuilder<Guid, IEvent>(config)
+            .SetValueDeserializer(new KafkaJsonSerializer())
+            .SetKeyDeserializer(new KafkaGuidSerializer())
             .SetLogHandler((_, message) =>
             {
                 var logLevel = message.Level.ToLogLevel();
@@ -62,41 +65,59 @@ public class KafkaBackgroundConsumer(
             })
             .Build();
 
-        consumer.Subscribe(_options.Topic);
-
         try
         {
+            consumer.Subscribe(_options.Topic);
+
             while (!stoppingToken.IsCancellationRequested && await timer.WaitForNextTickAsync(stoppingToken))
+            {
+                ConsumeResult<Guid, IEvent>? result;
+
                 try
                 {
-                    var result = consumer.Consume(stoppingToken);
+                    result = consumer.Consume(stoppingToken);
+                }
+                catch (ConsumeException ex)
+                {
+                    logger.LogWarning(ex, "Error occured while consuming");
+                    continue;
+                }
 
-                    if (result.Message == null || result.Message.Value is NullEvent)
-                    {
-                        logger.LogEmptyMessageReceived(result.Partition, result.Offset);
-                        continue;
-                    }
+                if (result.Message?.Value is null or NullEvent)
+                {
+                    logger.LogEmptyMessageReceived(result.Partition, result.Offset);
+                    continue;
+                }
 
-                    if (result.Message.Value is UnparsableEvent unparsableEvent)
-                    {
-                        logger.LogUnparsableMessage(unparsableEvent.Data.Length, result.Message.Key, result.Partition,
-                            result.Offset, result.Topic, unparsableEvent.Reason);
-                        continue;
-                    }
+                if (result.Message.Value is UnparsableEvent unparsableEvent)
+                {
+                    logger.LogUnparsableMessage(unparsableEvent.Data.Length, result.Message.Key, result.Partition,
+                        result.Offset, result.Topic, unparsableEvent.Reason);
+                    continue;
+                }
 
-                    logger.LogEventReceived(result.Message.Key, result.Message.Value, result.Partition,
-                        result.Offset);
+                logger.LogEventReceived(result.Message.Key, result.Message.Value, result.Partition,
+                    result.Offset);
 
-                    await mediator.Publish(result.Message.Value, stoppingToken);
+                result.Message.Value.Context = new Context(result.Message.Headers, result.Message.Key);
 
+                try
+                {
+                    // Can not revert sender publish, so we first commit, if it fails, we can skip so it will be retried in next loop
                     consumer.Commit(result);
                 }
-                catch (ConsumeException e)
+                catch (KafkaException e)
                 {
-                    logger.LogWarning(e, "Error occured while consuming");
+                    logger.LogError(e, "Error occured while commiting event");
+                    continue;
                 }
+
+                // No exception can be thrown by the publisher, ArgumentNullException is covered by previous null check,
+                // InvalidMessageException is covered by TreatWarningsAsErrors at build time, AggregateException is covered by MessageExceptionHandler
+                await sender.Send(result.Message.Value, stoppingToken);
+            }
         }
-        catch (Exception e)
+        catch (Exception e) // Catch OperationCanceledException of consume or error from topic subscribe
         {
             logger.LogWarning(e, "Consumer stopped");
         }

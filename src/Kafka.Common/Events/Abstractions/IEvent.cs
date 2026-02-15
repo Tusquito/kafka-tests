@@ -2,4 +2,7 @@
 
 namespace Kafka.Common.Events.Abstractions;
 
-public interface IEvent : INotification;
+public interface IEvent : ICommand
+{
+    public Context Context { get; set; }
+}

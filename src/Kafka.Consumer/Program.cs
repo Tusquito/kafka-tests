@@ -1,12 +1,19 @@
 using Kafka.Common;
+using Kafka.Common.Events;
+using Kafka.Common.Events.Abstractions;
+using Kafka.Common.Serializer;
 using Kafka.Consumer;
 using Kafka.ServiceDefaults;
+using Mediator;
 
 var builder = Host.CreateApplicationBuilder(args);
 
 builder.AddServiceDefaults();
 
-builder.Services.AddMediator();
+builder.Services.AddMediator(options => { options.NotificationPublisherType = typeof(TaskWhenAllPublisher); });
+
+// Source Generator automatically create implementation type for all matching generic types. e.g CreateEvent, DeleteEvent, GetEvent..
+builder.Services.AddSingleton(typeof(IPipelineBehavior<,>), typeof(KafkaEventHandlerErrorBehavior<,>));
 
 builder.Services.AddOptionsWithValidateOnStart<KafkaOptions>()
     .Configure(opts =>
@@ -20,6 +27,16 @@ builder.Services.AddOptionsWithValidateOnStart<KafkaOptions>()
     .ValidateDataAnnotations();
 
 builder.Services.AddHostedService<KafkaBackgroundConsumer>();
+
+/*
+ * Producer needed in a consumer context for retry
+ */
+builder.AddKafkaProducer<Guid, IEvent>("kafka-broker",
+    settings =>
+    {
+        settings.SetValueSerializer(new KafkaJsonSerializer());
+        settings.SetKeySerializer(new KafkaGuidSerializer());
+    });
 
 var host = builder.Build();
 

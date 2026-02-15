@@ -1,6 +1,6 @@
 using Kafka.Common;
 using Kafka.Common.Events.Abstractions;
-using Kafka.Common.Json;
+using Kafka.Common.Serializer;
 using Kafka.Producer;
 using Kafka.ServiceDefaults;
 
@@ -21,8 +21,12 @@ builder.Services.AddOptionsWithValidateOnStart<KafkaOptions>()
     .BindConfiguration(KafkaOptions.SectionName)
     .ValidateDataAnnotations();
 
-builder.AddKafkaProducer<string, IEvent>("kafka-broker",
-    settings => { settings.SetValueSerializer(new JsonValueSerializer()); });
+builder.AddKafkaProducer<Guid, IEvent>("kafka-broker",
+    settings =>
+    {
+        settings.SetValueSerializer(new KafkaJsonSerializer());
+        settings.SetKeySerializer(new KafkaGuidSerializer());
+    });
 
 var host = builder.Build();
 

@@ -1,7 +1,8 @@
 ﻿using System.Text.Json;
 using System.Text.Json.Serialization;
-using Kafka.Common.Events;
 using Kafka.Common.Events.Abstractions;
+using Kafka.Common.Events.Null;
+using Kafka.Common.Events.Unparsable;
 
 namespace Kafka.Common.Json;
 

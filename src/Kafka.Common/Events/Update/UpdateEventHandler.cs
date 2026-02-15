@@ -4,11 +4,11 @@ using Microsoft.Extensions.Logging;
 
 namespace Kafka.Common.Events.Update;
 
-public sealed class UpdateEventHandler(ILogger<GetEventHandler> logger) : INotificationHandler<UpdateEvent>
+public sealed class UpdateEventHandler(ILogger<GetEventHandler> logger) : ICommandHandler<UpdateEvent>
 {
-    public ValueTask Handle(UpdateEvent notification, CancellationToken cancellationToken)
+    public ValueTask<Unit> Handle(UpdateEvent notification, CancellationToken cancellationToken)
     {
         logger.LogEventHandled(notification);
-        return ValueTask.CompletedTask;
+        return Unit.ValueTask;
     }
 }

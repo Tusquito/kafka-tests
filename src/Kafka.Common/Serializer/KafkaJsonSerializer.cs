@@ -3,12 +3,15 @@ using System.Text.Json;
 using Confluent.Kafka;
 using Kafka.Common.Events;
 using Kafka.Common.Events.Abstractions;
+using Kafka.Common.Events.Null;
+using Kafka.Common.Events.Unparsable;
+using Kafka.Common.Json;
 
-namespace Kafka.Common.Json;
+namespace Kafka.Common.Serializer;
 
-public class JsonValueSerializer : IDeserializer<IEvent>, ISerializer<IEvent>
+public sealed class KafkaJsonSerializer : IDeserializer<IEvent>, ISerializer<IEvent>
 {
-    private readonly Dictionary<EventKind, Type> _events = EventExtensions.ScanEventTypes();
+    private readonly Dictionary<EventKind, Type> _events = KafkaEventExtensions.ScanEventTypes();
 
     private readonly JsonSerializerOptions _serializerOptions = new()
     {
@@ -17,25 +20,28 @@ public class JsonValueSerializer : IDeserializer<IEvent>, ISerializer<IEvent>
 
     public IEvent Deserialize(ReadOnlySpan<byte> data, bool isNull, SerializationContext context)
     {
-        if (isNull) return new NullEvent(context);
-
-        if (context.Component != MessageComponentType.Value)
-            return new UnparsableEvent(context, new ReadOnlyMemory<byte>(data.ToArray()),
-                UnparsableReason.InvalidMessageComponentType);
+        if (isNull || data.IsEmpty) return NullEvent.Null;
 
         var eventKind = context.Headers.FindEventKind();
 
         if (eventKind is EventKind.KEventUnknown)
-            return new UnparsableEvent(context, new ReadOnlyMemory<byte>(data.ToArray()),
-                UnparsableReason.UnknownEventKind);
+            return new UnparsableEvent
+            {
+                Data = new ReadOnlyMemory<byte>(data.ToArray()),
+                Reason = UnparsableReason.UnknownEventKind
+            };
 
         var eventType = _events.FindEventType(eventKind);
 
         var str = Encoding.UTF8.GetString(data);
 
         if (JsonSerializer.Deserialize(str, eventType, _serializerOptions) is not IEvent deserialized)
-            return new UnparsableEvent(context, new ReadOnlyMemory<byte>(data.ToArray()),
-                UnparsableReason.NotDeserializableData);
+            return new UnparsableEvent
+            {
+                Data = new ReadOnlyMemory<byte>(data.ToArray()),
+                Reason = UnparsableReason.NotDeserializableData
+            };
+
 
         return deserialized;
     }

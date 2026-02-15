@@ -1,6 +1,6 @@
 ﻿using Confluent.Kafka;
-using Kafka.Common.Events;
 using Kafka.Common.Events.Abstractions;
+using Kafka.Common.Events.Unparsable;
 using Microsoft.Extensions.Logging;
 
 namespace Kafka.Common;
@@ -15,7 +15,7 @@ public static partial class LoggerExtensions
 
     [LoggerMessage(LogLevel.Information,
         "New message received: [{Key}]: {Event} at Partition [{Partition}] and Offset [{Offset}]")]
-    public static partial void LogEventReceived(this ILogger logger, string key, IEvent @event, int partition,
+    public static partial void LogEventReceived(this ILogger logger, Guid key, IEvent @event, int partition,
         long offset);
 
     [LoggerMessage(LogLevel.Warning, "Failed to produce event: {Event}")]
@@ -29,7 +29,7 @@ public static partial class LoggerExtensions
 
     [LoggerMessage(LogLevel.Warning,
         "Failed to deserialize message ({Length} bytes) with Key [{Key}] at Offset [{Offset}] of Partition [{Partition}] from Topic [{Topic}] for Reason [{Reason}]")]
-    public static partial void LogUnparsableMessage(this ILogger logger, long length, string key, int partition,
+    public static partial void LogUnparsableMessage(this ILogger logger, long length, Guid key, int partition,
         long offset,
         string topic, UnparsableReason reason);
 
