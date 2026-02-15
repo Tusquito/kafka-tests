@@ -30,18 +30,18 @@ public static class KafkaEventExtensions
             return Enum.TryParse(kindStr, out EventKind kind) ? kind : EventKind.KEventUnknown;
         }
 
-        public byte FindRetryCount()
+        public byte FindRetryAttempts()
         {
-            if (!headers.TryGetLastBytes(KafkaHeader.RetryCount.ToKey(), out var bytes) || bytes.Length == 0)
+            if (!headers.TryGetLastBytes(KafkaHeader.RetryAttempts.ToKey(), out var bytes) || bytes.Length == 0)
                 return 0;
 
             return bytes.FirstOrDefault();
         }
 
-        public byte IncRetryCount()
+        public byte IncRetryAttempts()
         {
-            var key = KafkaHeader.RetryCount.ToKey();
-            var nextCount = (byte)(headers.FindRetryCount() + 1);
+            var key = KafkaHeader.RetryAttempts.ToKey();
+            var nextCount = (byte)(headers.FindRetryAttempts() + 1);
             headers.Remove(key);
             headers.Add(key, [nextCount]);
             return nextCount;

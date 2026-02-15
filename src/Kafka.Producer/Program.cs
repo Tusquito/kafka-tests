@@ -1,5 +1,6 @@
 using Kafka.Common;
 using Kafka.Common.Events.Abstractions;
+using Kafka.Common.Metrics;
 using Kafka.Common.Serializer;
 using Kafka.Producer;
 using Kafka.ServiceDefaults;
@@ -7,6 +8,10 @@ using Kafka.ServiceDefaults;
 var builder = Host.CreateApplicationBuilder(args);
 
 builder.AddServiceDefaults();
+builder.Services.AddOpenTelemetry()
+    .WithMetrics(x => { x.AddMeter(Tags.MeterName); });
+
+builder.Services.AddSingleton<KafkaMetrics>();
 
 builder.Services.AddHostedService<KafkaBackgroundProducer>();
 

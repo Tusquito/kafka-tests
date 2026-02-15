@@ -16,5 +16,5 @@ public sealed class KafkaOptions
 
     [Range(0, long.MaxValue)] public required long LoopIntervalMs { get; init; } = 100;
 
-    [Range(0, byte.MaxValue)] public required byte MaxRetryCount { get; init; } = 3;
+    [Range(0, byte.MaxValue)] public required byte MaxRetryAttempts { get; init; } = 3;
 }

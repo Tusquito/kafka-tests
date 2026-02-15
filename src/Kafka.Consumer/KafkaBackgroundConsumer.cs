@@ -4,16 +4,18 @@ using Kafka.Common.Events;
 using Kafka.Common.Events.Abstractions;
 using Kafka.Common.Events.Null;
 using Kafka.Common.Events.Unparsable;
+using Kafka.Common.Metrics;
 using Kafka.Common.Serializer;
 using Mediator;
 using Microsoft.Extensions.Options;
 
 namespace Kafka.Consumer;
 
-public class KafkaBackgroundConsumer(
+public sealed class KafkaBackgroundConsumer(
     IOptions<KafkaOptions> options,
     ILogger<KafkaBackgroundConsumer> logger,
-    ISender sender)
+    ISender sender,
+    KafkaMetrics metrics)
     : BackgroundService
 {
     /// <summary>
@@ -76,16 +78,18 @@ public class KafkaBackgroundConsumer(
                 try
                 {
                     result = consumer.Consume(stoppingToken);
+                    metrics.RecordEventConsumed(result.Topic, result.Partition, result.Message.Headers.FindEventKind());
                 }
                 catch (ConsumeException ex)
                 {
-                    logger.LogWarning(ex, "Error occured while consuming");
+                    logger.LogConsumeFailed(ex);
+                    metrics.RecordEventConsumedException(ex.ConsumerRecord.Topic, ex.ConsumerRecord.Partition, ex.ConsumerRecord.Message.Headers.FindEventKind(), ex.GetType());
                     continue;
                 }
 
                 if (result.Message?.Value is null or NullEvent)
                 {
-                    logger.LogEmptyMessageReceived(result.Partition, result.Offset);
+                    logger.LogEmptyMessageReceived(result.Partition, result.Offset, result.Topic);
                     continue;
                 }
 
@@ -97,19 +101,36 @@ public class KafkaBackgroundConsumer(
                 }
 
                 logger.LogEventReceived(result.Message.Key, result.Message.Value, result.Partition,
-                    result.Offset);
+                    result.Offset, result.Topic);
 
                 result.Message.Value.Context = new Context(result.Message.Headers, result.Message.Key);
 
-                try
+                var retryAttempt = 0;
+
+                while (!stoppingToken.IsCancellationRequested && retryAttempt <= _options.MaxRetryAttempts)
                 {
-                    // Can not revert sender publish, so we first commit, if it fails, we can skip so it will be retried in next loop
-                    consumer.Commit(result);
+                    try
+                    {
+                        // Can not revert sender publish, so we first commit, if it fails, we can skip so it will be retried in next loop
+                        consumer.Commit(result);
+                        break;
+                    }
+                    catch (KafkaException e)
+                    {
+                        logger.LogCommitFailed(e, result.Message.Value, result.Message.Key, result.Topic,
+                            result.Partition, result.Offset, retryAttempt, _options.MaxRetryAttempts);
+                        
+                        metrics.RecordEventConsumedException(result.Topic, result.Partition, result.Message.Headers.FindEventKind(), e.GetType());
+
+                        retryAttempt++;
+                    }
                 }
-                catch (KafkaException e)
+
+                if (retryAttempt >= _options.MaxRetryAttempts)
                 {
-                    logger.LogError(e, "Error occured while commiting event");
-                    continue;
+                    logger.LogCommitRetryAttemptsExceeded(result.Message.Value, result.Message.Key, result.Topic,
+                        result.Partition, result.Offset);
+                    break;
                 }
 
                 // No exception can be thrown by the publisher, ArgumentNullException is covered by previous null check,
@@ -119,7 +140,7 @@ public class KafkaBackgroundConsumer(
         }
         catch (Exception e) // Catch OperationCanceledException of consume or error from topic subscribe
         {
-            logger.LogWarning(e, "Consumer stopped");
+            logger.LogConsumerErrorOccured(e);
         }
         finally
         {

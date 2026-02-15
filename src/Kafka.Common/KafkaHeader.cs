@@ -3,5 +3,5 @@
 public enum KafkaHeader
 {
     EventKind,
-    RetryCount
+    RetryAttempts
 }

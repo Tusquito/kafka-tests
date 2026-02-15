@@ -1,5 +1,6 @@
 ﻿using Confluent.Kafka;
 using Kafka.Common.Events.Abstractions;
+using Kafka.Common.Metrics;
 using Mediator;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -9,7 +10,8 @@ namespace Kafka.Common.Events;
 public sealed class KafkaEventHandlerErrorBehavior<TEvent, TResponse>(
     ILogger<KafkaEventHandlerErrorBehavior<TEvent, TResponse>> logger,
     IProducer<Guid, IEvent> producer,
-    IOptions<KafkaOptions> options)
+    IOptions<KafkaOptions> options,
+    KafkaMetrics metrics)
     : MessageExceptionHandler<TEvent, TResponse> where TEvent : IEvent
 {
     private readonly KafkaOptions _options = options.Value;
@@ -19,7 +21,7 @@ public sealed class KafkaEventHandlerErrorBehavior<TEvent, TResponse>(
     {
         logger.LogError(exception, "Error handling event of type {messageType}", @event.GetType().Name);
 
-        var retryCount = @event.Context.Headers.FindRetryCount();
+        var retryAttempts = @event.Context.Headers.FindRetryAttempts();
 
         var message = new Message<Guid, IEvent>
         {
@@ -28,19 +30,25 @@ public sealed class KafkaEventHandlerErrorBehavior<TEvent, TResponse>(
             Headers = @event.Context.Headers
         };
 
-        message.Headers.IncRetryCount();
-
-        var topic = retryCount >= _options.MaxRetryCount ? _options.DlqTopic : _options.Topic;
+        if (retryAttempts < _options.MaxRetryAttempts)
+        {
+            message.Headers.IncRetryAttempts();
+        }
+        
+        var topic = retryAttempts >= _options.MaxRetryAttempts ? _options.DlqTopic : _options.Topic;
 
         try
         {
             await producer.ProduceAsync(topic, message, cancellationToken);
+            metrics.RecordEventProduced(topic, message.Headers.FindEventKind());
+            
+            logger.LogInformation("Event {Event} has been published to {Topic} for retry. (Attempts {RetryAttempt}/{MaxRetryAttempts}).", message.Value, topic, retryAttempts, _options.MaxRetryAttempts);
             return Handled(default!);
         }
         catch (Exception e)
         {
-            logger.LogError(e, "Failed to retry Event {Event}, RetryCount {RetryCount}, Topic {Topic}",
-                @event.GetType().Name, retryCount, topic);
+            logger.LogError(e, "Failed to retry Event {Event}, RetryAttempts {RetryAttempts}, Topic {Topic}",
+                @event.GetType().Name, retryAttempts, topic);
             return NotHandled;
         }
     }

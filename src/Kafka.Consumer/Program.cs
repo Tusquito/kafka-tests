@@ -1,6 +1,7 @@
 using Kafka.Common;
 using Kafka.Common.Events;
 using Kafka.Common.Events.Abstractions;
+using Kafka.Common.Metrics;
 using Kafka.Common.Serializer;
 using Kafka.Consumer;
 using Kafka.ServiceDefaults;
@@ -10,10 +11,15 @@ var builder = Host.CreateApplicationBuilder(args);
 
 builder.AddServiceDefaults();
 
+builder.Services.AddOpenTelemetry()
+    .WithMetrics(x => { x.AddMeter(Tags.MeterName); });
+
 builder.Services.AddMediator(options => { options.NotificationPublisherType = typeof(TaskWhenAllPublisher); });
 
 // Source Generator automatically create implementation type for all matching generic types. e.g CreateEvent, DeleteEvent, GetEvent..
 builder.Services.AddSingleton(typeof(IPipelineBehavior<,>), typeof(KafkaEventHandlerErrorBehavior<,>));
+
+builder.Services.AddSingleton<KafkaMetrics>();
 
 builder.Services.AddOptionsWithValidateOnStart<KafkaOptions>()
     .Configure(opts =>

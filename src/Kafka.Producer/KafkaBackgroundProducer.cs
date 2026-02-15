@@ -3,7 +3,7 @@ using Confluent.Kafka;
 using Kafka.Common;
 using Kafka.Common.Events;
 using Kafka.Common.Events.Abstractions;
-using Kafka.Common.Events.Create;
+using Kafka.Common.Metrics;
 using Microsoft.Extensions.Options;
 
 namespace Kafka.Producer;
@@ -11,7 +11,8 @@ namespace Kafka.Producer;
 public class KafkaBackgroundProducer(
     ILogger<KafkaBackgroundProducer> logger,
     IProducer<Guid, IEvent> producer,
-    IOptions<KafkaOptions> options)
+    IOptions<KafkaOptions> options,
+    KafkaMetrics metrics)
     : BackgroundService
 {
     private readonly Dictionary<EventKind, Type> _events = KafkaEventExtensions.ScanEventTypes();
@@ -29,7 +30,7 @@ public class KafkaBackgroundProducer(
             message.Headers =
             [
                 new Header(KafkaHeader.EventKind.ToKey(), Encoding.UTF8.GetBytes(rdmEvent.Key.ToString())),
-                new Header(KafkaHeader.RetryCount.ToKey(), [0])
+                new Header(KafkaHeader.RetryAttempts.ToKey(), [0])
             ];
 
             if (Activator.CreateInstance(rdmEvent.Value) is not IEvent evt)
@@ -45,10 +46,12 @@ public class KafkaBackgroundProducer(
             {
                 await producer.ProduceAsync(_options.Topic, message, stoppingToken);
                 logger.LogEventEmitted(evt);
+                metrics.RecordEventProduced(_options.Topic, rdmEvent.Key);
             }
             catch (ProduceException<Guid, IEvent> e)
             {
                 logger.LogFailedToProduceEvent(evt, e);
+                metrics.RecordEventProducedException(_options.Topic, rdmEvent.Key, e.GetType());
             }
         }
     }
